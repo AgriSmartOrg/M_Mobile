@@ -44,4 +44,10 @@ example
 
 .claude/
 .vscode/
+.idea/
+.mvn/
+*.mvn
+*.idea
+*.pem
+
 

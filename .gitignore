@@ -42,6 +42,6 @@ example
 /ios
 /android
 
-.claude
-.vscode
+.claude/
+.vscode/
 

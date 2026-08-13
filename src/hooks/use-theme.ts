@@ -1,14 +1,9 @@
-/**
- * Learn more about light and dark modes:
- * https://docs.expo.dev/guides/color-schemes/
- */
+// Hook de thème : renvoie la palette selon le mode clair/sombre du système.
 
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors, type ThemeColors } from "@/constants/theme"
+import { useColorScheme } from "@/hooks/use-color-scheme"
 
-export function useTheme() {
-  const scheme = useColorScheme();
-  const theme = scheme === 'unspecified' ? 'light' : scheme;
-
-  return Colors[theme];
+export function useTheme(): ThemeColors {
+  const scheme = useColorScheme()
+  return scheme === "dark" ? Colors.dark : Colors.light
 }

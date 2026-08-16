@@ -8,6 +8,7 @@ import {
   login,
   logout,
   marquerMotDePasseChange,
+  mettreAJourUtilisateur,
   subscribe,
 } from "./auth-store"
 import type { AuthUser, LoginRequest } from "./types"
@@ -20,6 +21,7 @@ interface UseAuthResult {
   login: (credentials: LoginRequest) => Promise<AuthUser>
   logout: () => Promise<void>
   marquerMotDePasseChange: () => void
+  mettreAJourUtilisateur: (patch: Partial<AuthUser>) => void
 }
 
 export function useAuth(): UseAuthResult {
@@ -32,5 +34,6 @@ export function useAuth(): UseAuthResult {
     login,
     logout,
     marquerMotDePasseChange,
+    mettreAJourUtilisateur,
   }
 }

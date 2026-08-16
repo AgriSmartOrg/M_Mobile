@@ -118,6 +118,15 @@ export function marquerMotDePasseChange(): void {
   setState({ user, hydrated: true })
 }
 
+// Met à jour partiellement l'utilisateur courant (après édition du profil :
+// nom, prénom, photo) et persiste la copie locale.
+export function mettreAJourUtilisateur(patch: Partial<AuthUser>): void {
+  if (!state.user) return
+  const user: AuthUser = { ...state.user, ...patch }
+  void setStoredUser(user)
+  setState({ user, hydrated: true })
+}
+
 // Renouvelle le JWT à partir du jeton de rafraîchissement longue durée et
 // rafraîchit les informations de l'utilisateur (statut d'organisation compris).
 // Rejette si le jeton est expiré/révoqué (reconnexion nécessaire) ; silencieux

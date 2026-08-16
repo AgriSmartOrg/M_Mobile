@@ -1,6 +1,6 @@
 // Onglet « Plus » : profil de l'utilisateur, accès aux tickets, déconnexion.
 
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native"
 import { useRouter } from "expo-router"
 import { Ionicons } from "@expo/vector-icons"
 
@@ -35,13 +35,17 @@ export default function PlusScreen() {
       {/* ── Profil ── */}
       <Carte>
         <View style={styles.profil}>
-          <View
-            style={[styles.avatar, { backgroundColor: t.primaryMuted }]}
-          >
-            <Text style={[styles.initiales, { color: t.primary }]}>
-              {(user?.prenom?.[0] ?? "") + (user?.nom?.[0] ?? "")}
-            </Text>
-          </View>
+          {user?.photoUrl ? (
+            <Image source={{ uri: user.photoUrl }} style={styles.avatar} />
+          ) : (
+            <View
+              style={[styles.avatar, { backgroundColor: t.primaryMuted }]}
+            >
+              <Text style={[styles.initiales, { color: t.primary }]}>
+                {(user?.prenom?.[0] ?? "") + (user?.nom?.[0] ?? "")}
+              </Text>
+            </View>
+          )}
           <View style={{ flex: 1 }}>
             <Text style={[styles.nom, { color: t.text }]}>
               {user?.prenom} {user?.nom}
@@ -62,6 +66,16 @@ export default function PlusScreen() {
 
       {/* ── Liens ── */}
       <Carte style={{ gap: 0 }}>
+        <Pressable
+          style={styles.lien}
+          onPress={() => router.navigate("/(tabs)/plus/profil")}
+        >
+          <Ionicons name="person-circle-outline" size={22} color={t.primary} />
+          <Text style={[styles.lienTexte, { color: t.text }]}>
+            Mon profil
+          </Text>
+          <Ionicons name="chevron-forward" size={18} color={t.textSecondary} />
+        </Pressable>
         <Pressable
           style={styles.lien}
           onPress={() => router.navigate("/(tabs)/plus/tickets")}

@@ -10,6 +10,7 @@ export default function PlusLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: "Plus" }} />
+      <Stack.Screen name="profil" options={{ title: "Mon profil" }} />
       <Stack.Screen name="tickets/index" options={{ title: "Mes tickets" }} />
       <Stack.Screen name="tickets/nouveau" options={{ title: "Nouveau ticket" }} />
       <Stack.Screen name="tickets/[id]" options={{ title: "Ticket" }} />

@@ -7,7 +7,7 @@ import { Tabs } from "expo-router"
 import { useEffect, useState } from "react"
 
 import { useTheme } from "@/hooks/use-theme"
-import { getAlertes } from "@/lib/alertes"
+import { getNbAlertesNonResolues } from "@/lib/alertes"
 
 const REFRESH_BADGE_MS = 60_000
 
@@ -20,8 +20,8 @@ export default function TabsLayout() {
 
     async function compter() {
       try {
-        const alertes = await getAlertes()
-        if (actif) setNonResolues(alertes.filter((a) => !a.resolue).length)
+        const nb = await getNbAlertesNonResolues()
+        if (actif) setNonResolues(nb)
       } catch {
         // silencieux — badge non critique
       }

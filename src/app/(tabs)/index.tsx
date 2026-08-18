@@ -25,9 +25,12 @@ export default function AccueilScreen() {
 
   const charger = useCallback(async () => {
     try {
-      const [s, a] = await Promise.all([getDashboardClient(), getAlertes()])
+      const [s, a] = await Promise.all([
+        getDashboardClient(),
+        getAlertes("NON_RESOLUES", 0, 5),
+      ])
       setStats(s)
-      setAlertes(a.filter((al) => !al.resolue).slice(0, 5))
+      setAlertes(a.content)
     } catch {
       // Erreur réseau : on garde les données précédentes.
     }

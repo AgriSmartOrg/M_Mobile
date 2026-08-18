@@ -26,9 +26,32 @@ export interface Alerte {
   valeurMesuree: number | null
 }
 
-// GET /api/alertes — toutes les alertes des parcelles accessibles.
-export function getAlertes(): Promise<Alerte[]> {
-  return apiFetch<Alerte[]>("/alertes")
+// GET /api/alertes — alertes paginées des parcelles accessibles.
+// filtre : NON_LUES | NON_RESOLUES (absent = toutes).
+export type FiltreAlerte = "NON_LUES" | "NON_RESOLUES"
+
+export interface PageAlertes {
+  content: Alerte[]
+  totalPages: number
+  totalElements: number
+  number: number
+}
+
+export function getAlertes(
+  filtre?: FiltreAlerte,
+  page = 0,
+  size = 10,
+): Promise<PageAlertes> {
+  const params = new URLSearchParams()
+  params.set("page", String(page))
+  params.set("size", String(size))
+  if (filtre) params.set("filtre", filtre)
+  return apiFetch<PageAlertes>(`/alertes?${params.toString()}`)
+}
+
+// GET /api/alertes/nb-non-resolues — compteur pour le badge de l'onglet.
+export function getNbAlertesNonResolues(): Promise<number> {
+  return apiFetch<number>("/alertes/nb-non-resolues")
 }
 
 // PATCH /api/alertes/{id}/lire

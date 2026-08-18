@@ -24,8 +24,11 @@ import {
   changerModeAuto,
   envoyerCommande,
   getActionneursByParcelle,
+  getHistoriqueCommandesParcelle,
+  ORIGINE_COMMANDE_LABELS,
   TYPE_ACTIONNEUR_LABELS,
   type Actionneur,
+  type CommandeActionneur,
 } from "@/lib/actionneurs"
 import { useAuth } from "@/lib/auth/use-auth"
 import {
@@ -64,16 +67,28 @@ export default function ParcelleDetailScreen() {
   const [mesuresHistorique, setMesuresHistorique] = useState<Mesure[]>([])
   const [chargementHistorique, setChargementHistorique] = useState(false)
 
+  // Historique des commandes d'actionneurs (paginé, « Voir plus »).
+  const [commandes, setCommandes] = useState<CommandeActionneur[]>([])
+  const [commandesPage, setCommandesPage] = useState(0)
+  const [commandesTotalPages, setCommandesTotalPages] = useState(0)
+  const [commandesChargement, setCommandesChargement] = useState(false)
+
   const charger = useCallback(async () => {
     try {
       // Les actionneurs sont chargés par parcelle (un seul appel) ; leur
       // échec ne doit pas faire tomber tout l'écran.
-      const [b, la] = await Promise.all([
+      const [b, la, pc] = await Promise.all([
         getTableauDeBordParcelle(parcelleId),
         getActionneursByParcelle(parcelleId).catch(() => [] as Actionneur[]),
+        getHistoriqueCommandesParcelle(parcelleId).catch(() => null),
       ])
       setBord(b)
       setActionneurs(la)
+      if (pc) {
+        setCommandes(pc.content)
+        setCommandesPage(pc.number)
+        setCommandesTotalPages(pc.totalPages)
+      }
       setErreurChargement(false)
       // Les dispositifs (vue technique) sont réservés à l'ADMIN — 403
       // pour un AGRICULTEUR.
@@ -156,6 +171,23 @@ export default function ParcelleDetailScreen() {
         "Échec",
         e instanceof Error ? e.message : "Changement de mode impossible.",
       )
+    }
+  }
+
+  async function chargerPlusCommandes() {
+    setCommandesChargement(true)
+    try {
+      const pc = await getHistoriqueCommandesParcelle(
+        parcelleId,
+        commandesPage + 1,
+      )
+      setCommandes((prev) => [...prev, ...pc.content])
+      setCommandesPage(pc.number)
+      setCommandesTotalPages(pc.totalPages)
+    } catch {
+      // Silencieux : le bouton reste disponible pour réessayer.
+    } finally {
+      setCommandesChargement(false)
     }
   }
 
@@ -401,6 +433,52 @@ export default function ParcelleDetailScreen() {
             </Carte>
           ))
         )}
+
+        {/* ── Historique des commandes ── */}
+        <Text style={[styles.sectionTitre, { color: t.text }]}>
+          Historique des commandes
+        </Text>
+        <Carte>
+          {commandes.length === 0 ? (
+            <Text style={{ color: t.textSecondary }}>
+              Aucune commande enregistrée sur cette parcelle.
+            </Text>
+          ) : (
+            <>
+              {commandes.map((c) => (
+                <View key={c.id} style={styles.commandeLigne}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: t.text, fontWeight: "600" }}>
+                      {c.actionneurNom ?? "Actionneur"}
+                    </Text>
+                    <Text style={{ color: t.textSecondary, fontSize: 12 }}>
+                      {new Date(c.dateCommande).toLocaleString("fr-FR", {
+                        dateStyle: "short",
+                        timeStyle: "short",
+                      })}
+                      {" · "}
+                      {ORIGINE_COMMANDE_LABELS[c.origine] ?? c.origine}
+                      {" · "}
+                      {c.utilisateurNomComplet ?? "Système"}
+                    </Text>
+                  </View>
+                  <Badge
+                    texte={c.etatDemande ? "Allumé" : "Éteint"}
+                    ton={c.etatDemande ? "primaire" : "neutre"}
+                  />
+                </View>
+              ))}
+              {commandesPage < commandesTotalPages - 1 ? (
+                <Bouton
+                  titre="Voir plus"
+                  variante="secondaire"
+                  chargement={commandesChargement}
+                  onPress={() => void chargerPlusCommandes()}
+                />
+              ) : null}
+            </>
+          )}
+        </Carte>
       </ScrollView>
     </>
   )
@@ -430,6 +508,12 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   dispositifLigne: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: 4,
+  },
+  commandeLigne: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.sm,

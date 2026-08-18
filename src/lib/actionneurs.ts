@@ -38,6 +38,39 @@ export interface CommandeRequest {
   dateExtinctionAuto?: string
 }
 
+// Origine d'une commande — voir OrigineCommandeEnum côté backend.
+export type OrigineCommande =
+  | "MANUELLE"
+  | "AUTO_SEUIL"
+  | "AUTO_PLUIE"
+  | "AUTO_EXTINCTION"
+
+export const ORIGINE_COMMANDE_LABELS: Record<OrigineCommande, string> = {
+  MANUELLE: "Manuelle",
+  AUTO_SEUIL: "Auto (seuils)",
+  AUTO_PLUIE: "Auto (pluie)",
+  AUTO_EXTINCTION: "Auto (minuterie)",
+}
+
+// Ligne d'historique (GET /api/actionneurs/parcelle/{id}/commandes).
+export interface CommandeActionneur {
+  id: number
+  etatDemande: boolean
+  dateCommande: string
+  origine: OrigineCommande
+  utilisateurNomComplet: string | null
+  actionneurNom: string | null
+  actionneurType: TypeActionneur | null
+}
+
+// Page Spring Data (sous-ensemble utile).
+export interface PageCommandes {
+  content: CommandeActionneur[]
+  totalPages: number
+  totalElements: number
+  number: number
+}
+
 // GET /api/actionneurs/dispositif/{id}
 export function getActionneursByDispositif(
   dispositifId: number,
@@ -74,4 +107,16 @@ export function changerModeAuto(
     method: "PATCH",
     body: { modeAuto },
   })
+}
+
+// GET /api/actionneurs/parcelle/{id}/commandes — historique paginé des
+// commandes de tous les actionneurs de la parcelle.
+export function getHistoriqueCommandesParcelle(
+  parcelleId: number,
+  page = 0,
+  size = 10,
+): Promise<PageCommandes> {
+  return apiFetch<PageCommandes>(
+    `/actionneurs/parcelle/${parcelleId}/commandes?page=${page}&size=${size}`,
+  )
 }

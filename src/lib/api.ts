@@ -104,9 +104,11 @@ export async function apiFetch<T>(
     throw new ApiError(await extractErrorMessage(response), response.status)
   }
 
-  if (response.status === 204) {
+  // Réponse sans corps (204 No Content, 202 Accepted…) : rien à parser.
+  const texte = await response.text()
+  if (!texte) {
     return undefined as T
   }
 
-  return (await response.json()) as T
+  return JSON.parse(texte) as T
 }

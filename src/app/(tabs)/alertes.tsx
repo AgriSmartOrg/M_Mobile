@@ -1,7 +1,9 @@
 // Alertes : liste filtrable (toutes / non résolues), marquer lue / résolue.
+// Pagination côté serveur : pages suivantes chargées au fil du défilement.
 
-import { useCallback, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import {
+  ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
@@ -20,6 +22,7 @@ import {
   NIVEAU_LABELS,
   resoudreAlerte,
   type Alerte,
+  type FiltreAlerte,
 } from "@/lib/alertes"
 
 type Filtre = "NON_RESOLUES" | "TOUTES"
@@ -31,26 +34,65 @@ export default function AlertesScreen() {
   const [filtre, setFiltre] = useState<Filtre>("NON_RESOLUES")
   const [chargement, setChargement] = useState(true)
   const [rafraichissement, setRafraichissement] = useState(false)
+  const [pageSuivanteEnCours, setPageSuivanteEnCours] = useState(false)
+  const pageRef = useRef(0)
+  const totalPagesRef = useRef(0)
 
-  const charger = useCallback(async () => {
-    try {
-      setAlertes(await getAlertes())
-    } catch {
-      // Réseau indisponible.
-    }
-  }, [])
+  const filtreApi = useCallback(
+    (f: Filtre): FiltreAlerte | undefined =>
+      f === "NON_RESOLUES" ? "NON_RESOLUES" : undefined,
+    [],
+  )
+
+  // Recharge la première page (montage, focus, pull-to-refresh, filtre).
+  const charger = useCallback(
+    async (f: Filtre) => {
+      try {
+        const p = await getAlertes(filtreApi(f), 0)
+        setAlertes(p.content)
+        pageRef.current = p.number
+        totalPagesRef.current = p.totalPages
+      } catch {
+        // Réseau indisponible.
+      }
+    },
+    [filtreApi],
+  )
 
   useFocusEffect(
     useCallback(() => {
       let actif = true
-      void charger().finally(() => {
+      void charger(filtre).finally(() => {
         if (actif) setChargement(false)
       })
       return () => {
         actif = false
       }
-    }, [charger]),
+    }, [charger, filtre]),
   )
+
+  async function chargerPageSuivante() {
+    if (pageSuivanteEnCours) return
+    if (pageRef.current >= totalPagesRef.current - 1) return
+    setPageSuivanteEnCours(true)
+    try {
+      const p = await getAlertes(filtreApi(filtre), pageRef.current + 1)
+      setAlertes((prev) => [...prev, ...p.content])
+      pageRef.current = p.number
+      totalPagesRef.current = p.totalPages
+    } catch {
+      // silencieux : retenté au prochain défilement
+    } finally {
+      setPageSuivanteEnCours(false)
+    }
+  }
+
+  function changerFiltre(f: Filtre) {
+    if (f === filtre) return
+    setFiltre(f)
+    setChargement(true)
+    void charger(f).finally(() => setChargement(false))
+  }
 
   async function lue(a: Alerte) {
     try {
@@ -64,7 +106,12 @@ export default function AlertesScreen() {
   async function resoudre(a: Alerte) {
     try {
       const maj = await resoudreAlerte(a.id)
-      setAlertes((liste) => liste.map((x) => (x.id === maj.id ? maj : x)))
+      // En vue « non résolues », l'alerte résolue sort de la liste.
+      setAlertes((liste) =>
+        filtre === "NON_RESOLUES"
+          ? liste.filter((x) => x.id !== maj.id)
+          : liste.map((x) => (x.id === maj.id ? maj : x)),
+      )
     } catch {
       // silencieux
     }
@@ -72,8 +119,7 @@ export default function AlertesScreen() {
 
   if (chargement) return <Chargement />
 
-  const affichees =
-    filtre === "TOUTES" ? alertes : alertes.filter((a) => !a.resolue)
+  const affichees = alertes
 
   return (
     <View style={{ flex: 1, backgroundColor: t.background }}>
@@ -82,12 +128,12 @@ export default function AlertesScreen() {
         {(
           [
             ["NON_RESOLUES", "Non résolues"],
-            ["TOUTES", `Toutes (${alertes.length})`],
+            ["TOUTES", "Toutes"],
           ] as [Filtre, string][]
         ).map(([valeur, label]) => (
           <Pressable
             key={valeur}
-            onPress={() => setFiltre(valeur)}
+            onPress={() => changerFiltre(valeur)}
             style={[
               styles.filtre,
               {
@@ -113,12 +159,19 @@ export default function AlertesScreen() {
         contentContainerStyle={styles.liste}
         data={affichees}
         keyExtractor={(a) => String(a.id)}
+        onEndReached={() => void chargerPageSuivante()}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={
+          pageSuivanteEnCours ? (
+            <ActivityIndicator color={t.primary} style={{ padding: Spacing.md }} />
+          ) : null
+        }
         refreshControl={
           <RefreshControl
             refreshing={rafraichissement}
             onRefresh={async () => {
               setRafraichissement(true)
-              await charger()
+              await charger(filtre)
               setRafraichissement(false)
             }}
           />
